@@ -1,11 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>magExpress</title>
+    <style>
+        /* Стили для "mag" */
+        .mag {
+            color: blue; /* синий цвет */
+            font-size: 150%; /* увеличиваем размер шрифта на 50% */
+        }
 
+        /* Стили для "Express" */
+        .Express {
+            color: yellow; /* жёлтый цвет */
+            font-size: 150%; /* увеличиваем размер шрифта на 50% */
+        }
+
+        /* Анимация для мигания */
+        @keyframes blink {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* Применяем анимацию к тексту */
+        .blinking {
+            animation: blink 1s infinite; /* мигание каждую секунду бесконечно */
+        }
+    </style>
+</head>
+<body>
+    <p><span class="mag">mag</span><span class="Express">Express</span><span class="blinking">magExpress</span></p>
+	  
     <!-- Bootstrap -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <!-- for fontawesome icon css file -->
