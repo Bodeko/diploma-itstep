@@ -3,35 +3,38 @@ version: 0.2
 env:
   variables:
     AWS_DEFAULT_REGION: "eu-central-1"
-    AWS_ACCOUNT_ID    : "905418307264"
-    ECR_REPO_NAME     : "diploma"
-    ECR_IMAGE_TAG     : "latest"
+    AWS_ACCOUNT_ID: "905418307264"
+    ECR_REPO_NAME: "diploma"
+    ECR_IMAGE_TAG: "latest"
+    DOCKER_HUB_USERNAME: "bodeko"
+    DOCKER_HUB_PASSWORD: "25Vjkjrj25"
 
 phases:
   install:
     commands:
-      - echo "Проверка версий AWS CLI и Git"
+      - echo "Check AWS CLI and Git versions"
       - aws --version
       - git --version
 
   pre_build:
     commands:
-      - echo "Вход в Amazon ECR и получение идентификатора коммита"
+      - echo "Login to Docker Hub"
+      # Вход в Docker Hub перед загрузкой образов
+      - echo $DOCKER_HUB_PASSWORD | docker login --username $DOCKER_HUB_USERNAME --password-stdin
+      - echo "Login to AWS ECR and get commit id"
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
       - COMMIT_ID=$(git rev-parse --short HEAD)
 
   build:
     commands:
-      - echo "Сборка Docker-образа..."
+      - echo "Building the Docker image..."
       - docker pull public.ecr.aws/nginx/nginx:latest || docker pull nginx:latest
-      - docker tag public.ecr.aws/nginx/nginx:latest $ECR_REPO_NAME:$ECR_IMAGE_TAG || docker tag nginx:latest $ECR_REPO_NAME:$ECR_IMAGE_TAG
       - docker build -t $ECR_REPO_NAME:$ECR_IMAGE_TAG .
       - docker tag $ECR_REPO_NAME:$ECR_IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$ECR_IMAGE_TAG
       - docker tag $ECR_REPO_NAME:$ECR_IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$COMMIT_ID
 
   post_build:
     commands:
-      - echo "Загрузка Docker-образа в ECR..."
+      - echo "Pushing the Docker image..."
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$ECR_IMAGE_TAG
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$COMMIT_ID
-
