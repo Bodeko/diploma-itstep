@@ -3,50 +3,32 @@ version: 0.2
 env:
   variables:
     AWS_DEFAULT_REGION: "eu-central-1"
-    AWS_ACCOUNT_ID: "905418307264"
-    ECR_REPO_NAME: "diploma"
-    ECR_IMAGE_TAG: "latest"
-    DOCKERHUB_USERNAME: "bodeko"
+    AWS_ACCOUNT_ID    : "905418307264"
+    ECR_REPO_NAME     : "diploma"
+    ECR_IMAGE_TAG     : "latest"
 
 phases:
   install:
-    runtime-versions:
-      python: 3.8
-      aws-cli: 2.0
     commands:
-      - echo "Installing necessary dependencies"
-      - apt-get update && apt-get install -y jq
-      - echo "Checking aws and git version"
+      - echo "Check aws and git version"
       - aws --version
       - git --version
 
   pre_build:
     commands:
-      - echo "Logging in to Docker Hub using token"
-      - DOCKERHUB_PASSWORD=$DOCKERHUB_PASSWORD # В CodeBuild переменная $DOCKERHUB_PASSWORD будет автоматически заменена на соответствующее значение
-      - DOCKERHUB_TOKEN=$(curl --user $DOCKERHUB_USERNAME:$DOCKERHUB_PASSWORD "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$ECR_REPO_NAME:pull" | jq -r .token)
-      - echo "Token obtained: $DOCKERHUB_TOKEN"
-      - docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_TOKEN
-      - echo "Logging in to AWS ECR"
-      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
-      - echo "Fetching commit id"
+      - echo "Login to AWS ECR and get commit id"
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION| docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
       - COMMIT_ID=$(git rev-parse --short HEAD)
 
   build:
     commands:
-      - echo "Building the Docker image..."
+      - echo Building the Docker image...
       - docker build -t $ECR_REPO_NAME:$ECR_IMAGE_TAG .
-      - echo "Tagging Docker image with latest tag and commit id"
       - docker tag $ECR_REPO_NAME:$ECR_IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$ECR_IMAGE_TAG
       - docker tag $ECR_REPO_NAME:$ECR_IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$COMMIT_ID
 
   post_build:
     commands:
-      - echo "Pushing the Docker image to ECR..."
+      - echo Pushing the Docker image...
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$ECR_IMAGE_TAG
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$COMMIT_ID
-
-cache:
-  paths:
-    - '/root/.docker'
-    - '/root/.cache'
