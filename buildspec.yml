@@ -7,13 +7,11 @@ env:
     ECR_REPO_NAME: "diploma"
     ECR_IMAGE_TAG: "latest"
     DOCKERHUB_USERNAME: "bodeko"
-    DOCKERHUB_PASSWORD: "25Vjkjrj25"
-    DOCKERHUB_TOKEN: ""  # Используется для хранения токена Docker Hub
 
 phases:
   install:
     runtime-versions:
-      python: 3.8  # Пример использования версии Python, замените по необходимости
+      python: 3.8
       aws-cli: 2.0
     commands:
       - echo "Installing necessary dependencies"
@@ -25,6 +23,7 @@ phases:
   pre_build:
     commands:
       - echo "Logging in to Docker Hub using token"
+      - DOCKERHUB_PASSWORD=$DOCKERHUB_PASSWORD # В CodeBuild переменная $DOCKERHUB_PASSWORD будет автоматически заменена на соответствующее значение
       - DOCKERHUB_TOKEN=$(curl --user $DOCKERHUB_USERNAME:$DOCKERHUB_PASSWORD "https://auth.docker.io/token?service=registry.docker.io&scope=repository:$ECR_REPO_NAME:pull" | jq -r .token)
       - echo "Token obtained: $DOCKERHUB_TOKEN"
       - docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_TOKEN
