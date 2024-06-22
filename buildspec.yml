@@ -18,14 +18,13 @@ phases:
     commands:
       - echo "Вход в Amazon ECR и получение идентификатора коммита"
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
-      - aws ecr-public get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin public.ecr.aws
       - COMMIT_ID=$(git rev-parse --short HEAD)
 
   build:
     commands:
       - echo "Сборка Docker-образа..."
-      - docker pull public.ecr.aws/nginx/nginx:latest
-      - docker tag public.ecr.aws/nginx/nginx:latest $ECR_REPO_NAME:$ECR_IMAGE_TAG
+      - docker pull public.ecr.aws/nginx/nginx:latest || docker pull nginx:latest
+      - docker tag public.ecr.aws/nginx/nginx:latest $ECR_REPO_NAME:$ECR_IMAGE_TAG || docker tag nginx:latest $ECR_REPO_NAME:$ECR_IMAGE_TAG
       - docker build -t $ECR_REPO_NAME:$ECR_IMAGE_TAG .
       - docker tag $ECR_REPO_NAME:$ECR_IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$ECR_IMAGE_TAG
       - docker tag $ECR_REPO_NAME:$ECR_IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$COMMIT_ID
