@@ -9,6 +9,9 @@ env:
 
 phases:
   install:
+    runtime-versions:
+      docker: 19  # Укажите версию Docker, если это необходимо
+
     commands:
       - echo "Installing necessary dependencies"
       - apt-get update && apt-get install -y jq
