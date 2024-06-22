@@ -6,8 +6,10 @@ env:
     AWS_ACCOUNT_ID: "905418307264"
     ECR_REPO_NAME: "diploma"
     ECR_IMAGE_TAG: "latest"
-    DOCKER_HUB_USERNAME: "bodeko"
-    DOCKER_HUB_PASSWORD: "25Vjkjrj25"
+    DOCKER_HUB_USERNAME: "bodeko"  # Ваш Docker Hub логин
+
+  secrets-manager:
+    DOCKER_HUB_TOKEN: "arn:aws:secretsmanager:eu-central-1:123456789012:secret:dockerhub-token"
 
 phases:
   install:
@@ -18,9 +20,9 @@ phases:
 
   pre_build:
     commands:
-      - echo "Login to Docker Hub"
-      # Вход в Docker Hub перед загрузкой образов
-      - echo $DOCKER_HUB_PASSWORD | docker login --username $DOCKER_HUB_USERNAME --password-stdin
+      - echo "Login to Docker Hub using token"
+      - DOCKER_HUB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id dockerhub-token --query SecretString --output text)
+      - echo "$DOCKER_HUB_PASSWORD" | docker login --username "$DOCKER_HUB_USERNAME" --password-stdin
       - echo "Login to AWS ECR and get commit id"
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
       - COMMIT_ID=$(git rev-parse --short HEAD)
@@ -28,10 +30,15 @@ phases:
   build:
     commands:
       - echo "Building the Docker image..."
-      - docker pull public.ecr.aws/nginx/nginx:latest || docker pull nginx:latest
       - docker build -t $ECR_REPO_NAME:$ECR_IMAGE_TAG .
       - docker tag $ECR_REPO_NAME:$ECR_IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$ECR_IMAGE_TAG
       - docker tag $ECR_REPO_NAME:$ECR_IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$COMMIT_ID
+
+  post_build:
+    commands:
+      - echo "Pushing the Docker image..."
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$ECR_IMAGE_TAG
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$COMMIT_ID
 
   post_build:
     commands:
