@@ -10,25 +10,29 @@ env:
 phases:
   install:
     commands:
-      - echo "Check aws and git version"
+      - echo "Проверка версий AWS CLI и Git"
       - aws --version
       - git --version
 
   pre_build:
     commands:
-      - echo "Login to AWS ECR and get commit id"
-      - aws ecr get-login-password --region $AWS_DEFAULT_REGION| docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - echo "Вход в Amazon ECR и получение идентификатора коммита"
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - aws ecr-public get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin public.ecr.aws
       - COMMIT_ID=$(git rev-parse --short HEAD)
 
   build:
     commands:
-      - echo Building the Docker image...
+      - echo "Сборка Docker-образа..."
+      - docker pull public.ecr.aws/nginx/nginx:latest
+      - docker tag public.ecr.aws/nginx/nginx:latest $ECR_REPO_NAME:$ECR_IMAGE_TAG
       - docker build -t $ECR_REPO_NAME:$ECR_IMAGE_TAG .
       - docker tag $ECR_REPO_NAME:$ECR_IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$ECR_IMAGE_TAG
       - docker tag $ECR_REPO_NAME:$ECR_IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$COMMIT_ID
 
   post_build:
     commands:
-      - echo Pushing the Docker image...
+      - echo "Загрузка Docker-образа в ECR..."
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$ECR_IMAGE_TAG
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPO_NAME:$COMMIT_ID
+
